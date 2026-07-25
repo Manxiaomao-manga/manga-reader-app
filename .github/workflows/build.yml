@@ -1,0 +1,63 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle 8.6
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.6"
+
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk MangaXiaomao.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MangaXiaomao-apk
+          path: MangaXiaomao.apk
+          if-no-files-found: error
+
+      - name: Create / Update Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "MangaXiaomao.apk"
+          tag: "v1"
+          name: "漫小猫 App v1"
+          body: |
+            ## 漫小猫 Android App
+
+            **安装方法：**
+            1. 下载 `MangaXiaomao.apk`
+            2. 手机打开，若提示「安装未知来源应用」请点击「设置」并开启
+            3. 返回安装，点击「安装」即可
+
+            **功能：**
+            - 完整网站功能（登录/充值/阅读）
+            - 支持章节离线下载
+            - 下拉刷新，返回键可在页内后退
+            - 全屏沉浸式阅读体验
+          allowUpdates: true
+          removeArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
