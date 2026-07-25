@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://manga.come100.com">🌐 官方网站</a> ·
-  <a href="https://github.com/DEAN2004/manga-reader-app/releases/download/v1/MangaXiaomao.apk">📥 下载 APK</a>
+  <a href="https://github.com/Manxiaomao-manga/manga-reader-app/releases/download/v1/MangaXiaomao.apk">📥 下载 APK</a>
 </p>
 
 ---
@@ -44,7 +44,7 @@
 
 点击下方按钮下载最新版本：
 
-**[📥 下载 MangaXiaomao.apk](https://github.com/DEAN2004/manga-reader-app/releases/download/v1/MangaXiaomao.apk)**
+**[📥 下载 MangaXiaomao.apk](https://github.com/Manxiaomao-manga/manga-reader-app/releases/download/v1/MangaXiaomao.apk)**
 
 > 安装前请在手机设置中开启「允许安装未知来源应用」
 
@@ -75,7 +75,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/DEAN2004/manga-reader-app.git
+git clone https://github.com/Manxiaomao-manga/manga-reader-app.git
 cd manga-reader-app
 
 # 构建 Debug APK
@@ -99,13 +99,13 @@ app/build/outputs/apk/debug/app-debug.apk
 
 下载链接始终固定为：
 ```
-https://github.com/DEAN2004/manga-reader-app/releases/download/v1/MangaXiaomao.apk
+https://github.com/Manxiaomao-manga/manga-reader-app/releases/download/v1/MangaXiaomao.apk
 ```
 
 ## 🌐 相关链接
 
 - 官方网站：[manga.come100.com](https://manga.come100.com)
-- APK 下载：[最新版本](https://github.com/DEAN2004/manga-reader-app/releases/latest)
+- APK 下载：[最新版本](https://github.com/Manxiaomao-manga/manga-reader-app/releases/latest)
 - 问题反馈：请在官网联系客服
 
 ---
