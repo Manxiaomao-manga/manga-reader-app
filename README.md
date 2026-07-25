@@ -110,6 +110,14 @@ https://github.com/DEAN2004/manga-reader-app/releases/download/v1/MangaXiaomao.a
 
 ---
 
+## 📄 版权声明
+
+Copyright © 2026 [漫小猫](https://manga.come100.com) · All Rights Reserved.
+
+本项目为漫小猫原创作品，受版权法保护。未经授权，禁止复制、修改或用于任何商业用途。详见 [LICENSE](./LICENSE) 文件。
+
+---
+
 <p align="center">
-  © 漫小猫 · <a href="https://manga.come100.com">manga.come100.com</a>
+  © 2026 漫小猫 · <a href="https://manga.come100.com">manga.come100.com</a>
 </p>
