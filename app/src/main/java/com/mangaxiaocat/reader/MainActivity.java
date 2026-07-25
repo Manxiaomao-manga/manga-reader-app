@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             Uri[] uris = null;
             if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                Uri data = result.getData();
+                Intent data = result.getData();
                 if (data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
                     uris = new Uri[count];
