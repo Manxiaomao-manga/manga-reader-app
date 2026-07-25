@@ -2,4 +2,5 @@
 <resources>
     <color name="purple">#7c6af7</color>
     <color name="bg_dark">#0d0d14</color>
+    <color name="icon_bg">#ffffff</color>
 </resources>
