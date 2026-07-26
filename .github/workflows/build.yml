@@ -50,6 +50,7 @@ jobs:
         run: |
           tmpdir=$(mktemp -d)
           cd "$tmpdir"
+          echo "rootProject.name = 'temp'" > settings.gradle
           gradle wrapper --gradle-version 8.3
           cp gradlew "$GITHUB_WORKSPACE/android/gradlew"
           cp gradlew.bat "$GITHUB_WORKSPACE/android/gradlew.bat"
