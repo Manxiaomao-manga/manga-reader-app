@@ -64,6 +64,9 @@ jobs:
       - name: Generate app icon
         run: dart run flutter_launcher_icons
 
+      - name: Generate native splash screen
+        run: dart run flutter_native_splash:create
+
       - name: Build Release APK
         run: flutter build apk --release
 
@@ -93,10 +96,11 @@ jobs:
 
             **功能：**
             - 完整网站功能（登录 / 充值 / 阅读）
-            - 底部导航：首页 / 搜索 / 书库 / 我的
+            - 底部导航：首页 / 分类 / 书架 / 我的
             - 支持章节离线下载（PWA 快取）
             - 下拉刷新，返回键在页内后退
             - 全屏沉浸式阅读体验
+            - 原生启动画面
           allowUpdates: true
           removeArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
