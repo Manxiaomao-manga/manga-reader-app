@@ -47,8 +47,8 @@ void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    navigationBarColor: Color(0xFF141428),
-    navigationBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Color(0xFF141428),
+    systemNavigationBarIconBrightness: Brightness.light,
   ));
   runApp(const MangaApp());
 }
