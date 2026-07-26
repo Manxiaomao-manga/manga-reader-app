@@ -1,9 +1,19 @@
-// In the new Flutter plugin format, this file is intentionally minimal.
-// Plugin classpath is managed via settings.gradle pluginManagement block.
+// In the new Flutter plugin format, classpath is managed via settings.gradle pluginManagement block.
 
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
+}
+
+// Point build output to project root /build so flutter CLI can find the APK
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
 }
