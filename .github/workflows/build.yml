@@ -31,24 +31,34 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      # Generate gradlew + gradle-wrapper.jar in android/ directory
+      # IMPORTANT: create local.properties BEFORE any Gradle step
+      # settings.gradle reads this file at startup to locate Flutter SDK
+      - name: Create local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
+          echo "flutter.versionCode=2" >> android/local.properties
+          echo "flutter.versionName=2.0.0" >> android/local.properties
+
+      # Generate gradlew in a temp dir to avoid triggering Flutter project evaluation
       - name: Setup Gradle wrapper
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: "8.3"
 
-      - name: Generate Gradle wrapper files
-        working-directory: android
-        run: gradle wrapper --gradle-version 8.3
+      - name: Generate Gradle wrapper in temp dir
+        run: |
+          tmpdir=$(mktemp -d)
+          cd "$tmpdir"
+          gradle wrapper --gradle-version 8.3
+          cp gradlew "$GITHUB_WORKSPACE/android/gradlew"
+          cp gradlew.bat "$GITHUB_WORKSPACE/android/gradlew.bat"
+          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
+          echo "Wrapper generated:"
+          ls -la "$GITHUB_WORKSPACE/android/gradle/wrapper/"
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
-
-      # Write local.properties so Flutter Gradle plugin can find the SDK
-      - name: Create local.properties
-        run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
 
       - name: Generate app icon
         run: dart run flutter_launcher_icons
