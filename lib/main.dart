@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
-const _base = 'https://manga.come100.com';
+const _base = 'https://manga.go-now.uk';
+
+// Domains kept in-app (site sometimes emits absolute links using its other
+// known hostnames — must still be treated as internal, not opened externally)
+const _appDomains = ['go-now.uk', 'come100.com', 'manxiaomao.com'];
 
 const _tabs = [
   _Tab(Icons.home_rounded, '首页', '$_base/'),
@@ -19,7 +23,13 @@ class _Tab {
   final String url;
 }
 
-// Injected at page start: spoof PWA standalone + push body down for bottom nav
+// Reader page URL shape: /manga/{slug}/{chapter} (two path segments).
+// Detail page is /manga/{slug} (one segment) — used to tell them apart.
+final _readerPathRe = RegExp(r'^/manga/[^/]+/[^/]+/?$');
+
+// Injected at page start: spoof PWA standalone, hide login/register + footer
+// (redundant in-app: bottom nav has 我的 tab; footer is unnecessary chrome),
+// and pad body for the bottom nav bar only on non-reader pages.
 const _initJs = r'''
 (function() {
   // Spoof matchMedia so offline download UI shows in App
@@ -33,10 +43,16 @@ const _initJs = r'''
     }
     return _om ? _om(q) : { matches: false };
   };
-  // Push body down so content isn't hidden behind bottom nav bar
   document.addEventListener('DOMContentLoaded', function() {
+    var isReader = /^\/manga\/[^\/]+\/[^\/]+\/?$/.test(location.pathname);
     var s = document.createElement('style');
-    s.textContent = 'body{padding-bottom:72px!important}';
+    // Scoped to .site-header so in-page links (e.g. login.php's own
+    // "没有账号？注册" link) aren't affected — only the top nav bar buttons.
+    s.textContent =
+      '.site-header a[href="/user/login.php"],' +
+      '.site-header a[href="/user/register.php"],' +
+      '.site-footer{display:none!important}' +
+      (isReader ? '' : 'body{padding-bottom:72px!important}');
     document.head.appendChild(s);
   });
 })();
@@ -91,6 +107,14 @@ class _MainPageState extends State<MainPage> {
   InAppWebViewController? _ctrl;
   PullToRefreshController? _ptr;
   double _progress = 1.0;
+  bool _isReaderPage = false;
+
+  void _updateReaderState(Uri? url) {
+    final isReader = url != null && _readerPathRe.hasMatch(url.path);
+    if (isReader != _isReaderPage) {
+      setState(() => _isReaderPage = isReader);
+    }
+  }
 
   @override
   void initState() {
@@ -164,13 +188,15 @@ class _MainPageState extends State<MainPage> {
                 },
                 onLoadStop: (c, url) {
                   _ptr?.endRefreshing();
+                  _updateReaderState(url);
                   setState(() => _progress = 1.0);
                 },
+                onUpdateVisitedHistory: (c, url, reload) =>
+                    _updateReaderState(url),
                 shouldOverrideUrlLoading: (c, action) async {
                   final url = action.request.url?.toString() ?? '';
-                  // Keep these domains in-app
-                  if (url.contains('come100.com') ||
-                      url.contains('manxiaomao.com')) {
+                  // Keep known site domains in-app
+                  if (_appDomains.any((d) => url.contains(d))) {
                     return NavigationActionPolicy.ALLOW;
                   }
                   // Everything else: allow (system handles tel: mailto: etc.)
@@ -187,16 +213,18 @@ class _MainPageState extends State<MainPage> {
             ],
           ),
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _idx,
-          onDestinationSelected: _switchTab,
-          destinations: _tabs
-              .map((t) => NavigationDestination(
-                    icon: Icon(t.icon, size: 22),
-                    label: t.label,
-                  ))
-              .toList(),
-        ),
+        bottomNavigationBar: _isReaderPage
+            ? null
+            : NavigationBar(
+                selectedIndex: _idx,
+                onDestinationSelected: _switchTab,
+                destinations: _tabs
+                    .map((t) => NavigationDestination(
+                          icon: Icon(t.icon, size: 22),
+                          label: t.label,
+                        ))
+                    .toList(),
+              ),
       ),
     );
   }

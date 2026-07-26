@@ -54,6 +54,14 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="manga.manxiaomao.com"/>
             </intent-filter>
+
+            <!-- Deep links: manga.go-now.uk (primary domain) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="manga.go-now.uk"/>
+            </intent-filter>
         </activity>
 
         <meta-data
