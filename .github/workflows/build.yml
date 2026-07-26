@@ -2,7 +2,7 @@ name: Build & Release APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -21,16 +21,43 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.6
+      - name: Set up Flutter 3.24
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      # Generate gradlew + gradle-wrapper.jar in android/ directory
+      - name: Setup Gradle wrapper
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: "8.6"
+          gradle-version: "8.3"
 
-      - name: Build Debug APK
-        run: gradle :app:assembleDebug
+      - name: Generate Gradle wrapper files
+        working-directory: android
+        run: gradle wrapper --gradle-version 8.3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      # Write local.properties so Flutter Gradle plugin can find the SDK
+      - name: Create local.properties
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
+
+      - name: Generate app icon
+        run: dart run flutter_launcher_icons
+
+      - name: Build Release APK
+        run: flutter build apk --release
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MangaXiaomao.apk
+        run: cp build/app/outputs/flutter-apk/app-release.apk MangaXiaomao.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -54,9 +81,10 @@ jobs:
             3. 返回安装，点击「安装」即可
 
             **功能：**
-            - 完整网站功能（登录/充值/阅读）
-            - 支持章节离线下载
-            - 下拉刷新，返回键可在页内后退
+            - 完整网站功能（登录 / 充值 / 阅读）
+            - 底部导航：首页 / 搜索 / 书库 / 我的
+            - 支持章节离线下载（PWA 快取）
+            - 下拉刷新，返回键在页内后退
             - 全屏沉浸式阅读体验
           allowUpdates: true
           removeArtifacts: true
