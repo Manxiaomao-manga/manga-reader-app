@@ -11,8 +11,8 @@ const _appDomains = ['go-now.uk', 'come100.com', 'manxiaomao.com'];
 
 const _tabs = [
   _Tab(Icons.home_rounded, '首页', '$_base/'),
-  _Tab(Icons.search_rounded, '搜索', '$_base/search.php'),
-  _Tab(Icons.favorite_rounded, '书库', '$_base/user/favorites.php'),
+  _Tab(Icons.category_rounded, '分类', '$_base/category.php'),
+  _Tab(Icons.collections_bookmark_rounded, '书架', '$_base/user/library.php'),
   _Tab(Icons.person_rounded, '我的', '$_base/user/settings.php'),
 ];
 
