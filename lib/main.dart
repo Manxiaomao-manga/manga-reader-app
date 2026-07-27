@@ -60,6 +60,30 @@ const _initJs = r'''
 })();
 ''';
 
+// Shown locally (no network needed) when every domain in the failover list
+// has failed — i.e. the device has no connectivity at all, not just a
+// single domain being blocked. The retry link is intercepted in
+// shouldOverrideUrlLoading rather than doing a real network navigation.
+const _offlineHtml = '''
+<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{background:#0f0f23;color:#f0eef8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:2rem;margin:0}
+.icon{font-size:3.2rem;margin-bottom:1rem}
+h2{font-size:1.1rem;margin-bottom:.6rem}
+p{color:#8888aa;font-size:.85rem;line-height:1.7;margin-bottom:1.5rem}
+a.btn{display:inline-block;background:linear-gradient(135deg,#e8645a,#7c6af7);color:#fff;border:none;
+  border-radius:8px;padding:.65rem 1.8rem;font-size:.9rem;font-weight:600;text-decoration:none;font-family:inherit}
+</style></head>
+<body><div>
+<div class="icon">📴</div>
+<h2>目前没有网络连接</h2>
+<p>请检查手机网络或 Wi-Fi 后重试。<br>已下载的离线章节仍可在「书架」中阅读。</p>
+<a class="btn" href="app://retry">🔄 重试</a>
+</div></body></html>
+''';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -145,16 +169,28 @@ class _MainPageState extends State<MainPage> {
 
   // Retry the same path on the next domain in the failover list. Keeps the
   // user on whatever page they were trying to reach instead of bouncing
-  // them back to the home tab.
+  // them back to the home tab. Once every domain has failed, that means
+  // there's no connectivity at all — show a local (no-network-needed) page
+  // instead of leaving Android's native "web page not available" screen up.
   void _failoverTo(Uri failedUrl) {
     if (_failoverBusy) return;
-    if (_domainIdx >= _domains.length - 1) return; // no more fallbacks left
+    if (_domainIdx >= _domains.length - 1) {
+      _ctrl?.loadData(data: _offlineHtml, mimeType: 'text/html', encoding: 'utf8');
+      return;
+    }
     _failoverBusy = true;
     _domainIdx++;
     final retryUri = failedUrl.replace(host: 'manga.${_domains[_domainIdx]}');
     _ctrl
         ?.loadUrl(urlRequest: URLRequest(url: WebUri(retryUri.toString())))
         .whenComplete(() => _failoverBusy = false);
+  }
+
+  // User tapped "retry" on the local offline page: start over from the
+  // primary domain rather than staying stuck on whichever domain failed last.
+  void _retryFromScratch() {
+    _domainIdx = 0;
+    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_tabUrl(_idx))));
   }
 
   @override
@@ -226,6 +262,10 @@ class _MainPageState extends State<MainPage> {
                     _updateReaderState(url),
                 shouldOverrideUrlLoading: (c, action) async {
                   final url = action.request.url?.toString() ?? '';
+                  if (url == 'app://retry') {
+                    _retryFromScratch();
+                    return NavigationActionPolicy.CANCEL;
+                  }
                   // Keep known site domains in-app
                   if (_domains.any((d) => url.contains(d))) {
                     return NavigationActionPolicy.ALLOW;
