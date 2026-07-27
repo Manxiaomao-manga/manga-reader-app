@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -131,14 +132,33 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _idx = 0;
   int _domainIdx = 0;
+  int _attempt = 0;
+  Timer? _loadTimer;
   InAppWebViewController? _ctrl;
   PullToRefreshController? _ptr;
   double _progress = 1.0;
   bool _isReaderPage = false;
-  bool _failoverBusy = false;
 
   String get _currentBase => 'https://manga.${_domains[_domainIdx]}';
   String _tabUrl(int i) => _currentBase + _tabPaths[i].path;
+
+  // Native connect/DNS timeouts can take 20-60+ seconds on some networks
+  // (e.g. "connected to Wi-Fi but no internet" rather than airplane mode).
+  // Trying 3 domains back-to-back at that pace could take over a minute
+  // before finally showing anything. This bounds every attempt to 8s so
+  // failover (and the final local offline page) shows up quickly instead.
+  void _armTimeout(Uri uri) {
+    _loadTimer?.cancel();
+    final myAttempt = ++_attempt;
+    _loadTimer = Timer(const Duration(seconds: 8), () {
+      if (myAttempt == _attempt) _failoverTo(uri);
+    });
+  }
+
+  void _loadUrl(Uri uri) {
+    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(uri.toString())));
+    _armTimeout(uri);
+  }
 
   void _updateReaderState(Uri? url) {
     final isReader = url != null && _readerPathRe.hasMatch(url.path);
@@ -158,13 +178,14 @@ class _MainPageState extends State<MainPage> {
 
   @override
   void dispose() {
+    _loadTimer?.cancel();
     _ptr?.dispose();
     super.dispose();
   }
 
   void _switchTab(int i) {
     setState(() => _idx = i);
-    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_tabUrl(i))));
+    _loadUrl(Uri.parse(_tabUrl(i)));
   }
 
   // Retry the same path on the next domain in the failover list. Keeps the
@@ -173,24 +194,21 @@ class _MainPageState extends State<MainPage> {
   // there's no connectivity at all — show a local (no-network-needed) page
   // instead of leaving Android's native "web page not available" screen up.
   void _failoverTo(Uri failedUrl) {
-    if (_failoverBusy) return;
     if (_domainIdx >= _domains.length - 1) {
+      _loadTimer?.cancel();
       _ctrl?.loadData(data: _offlineHtml, mimeType: 'text/html', encoding: 'utf8');
       return;
     }
-    _failoverBusy = true;
     _domainIdx++;
     final retryUri = failedUrl.replace(host: 'manga.${_domains[_domainIdx]}');
-    _ctrl
-        ?.loadUrl(urlRequest: URLRequest(url: WebUri(retryUri.toString())))
-        .whenComplete(() => _failoverBusy = false);
+    _loadUrl(retryUri);
   }
 
   // User tapped "retry" on the local offline page: start over from the
   // primary domain rather than staying stuck on whichever domain failed last.
   void _retryFromScratch() {
     _domainIdx = 0;
-    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_tabUrl(_idx))));
+    _loadUrl(Uri.parse(_tabUrl(_idx)));
   }
 
   @override
@@ -237,13 +255,19 @@ class _MainPageState extends State<MainPage> {
                       'Chrome/120.0.0.0 Mobile Safari/537.36 '
                       'MangaXiaomaoApp/2.0',
                 ),
-                onWebViewCreated: (c) => _ctrl = c,
+                onWebViewCreated: (c) {
+                  _ctrl = c;
+                  // initialUrlRequest's load isn't routed through _loadUrl,
+                  // so arm the same bounded timeout for it manually.
+                  _armTimeout(Uri.parse(_tabUrl(0)));
+                },
                 onLoadStart: (c, url) => setState(() => _progress = 0.05),
                 onProgressChanged: (c, p) {
                   setState(() => _progress = p / 100);
                   if (p == 100) _ptr?.endRefreshing();
                 },
                 onLoadStop: (c, url) {
+                  _loadTimer?.cancel();
                   _ptr?.endRefreshing();
                   _updateReaderState(url);
                   setState(() => _progress = 1.0);
@@ -255,6 +279,7 @@ class _MainPageState extends State<MainPage> {
                   // exactly what onReceivedError represents (HTTP status
                   // errors like 404/500 go through onReceivedHttpError).
                   if (request.isForMainFrame ?? true) {
+                    _loadTimer?.cancel();
                     _failoverTo(request.url);
                   }
                 },
