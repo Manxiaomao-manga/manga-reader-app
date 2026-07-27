@@ -45,6 +45,7 @@ const _initJs = r'''
   };
   document.addEventListener('DOMContentLoaded', function() {
     var isReader = /^\/manga\/[^\/]+\/[^\/]+\/?$/.test(location.pathname);
+    var isHome = location.pathname === '/' || location.pathname === '/index.php';
     var s = document.createElement('style');
     // Scoped to .site-header so in-page links (e.g. login.php's own
     // "没有账号？注册" link) aren't affected — only the top nav bar buttons.
@@ -52,7 +53,8 @@ const _initJs = r'''
       '.site-header a[href="/user/login.php"],' +
       '.site-header a[href="/user/register.php"],' +
       '.site-footer{display:none!important}' +
-      (isReader ? '' : 'body{padding-bottom:72px!important}');
+      (isReader ? '' : 'body{padding-bottom:72px!important}') +
+      (isHome ? '' : '.site-header{display:none!important}');
     document.head.appendChild(s);
   });
 })();
