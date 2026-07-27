@@ -21,10 +21,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Flutter 3.24
+      - name: Set up Flutter (latest stable)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
@@ -32,13 +31,21 @@ jobs:
         run: flutter pub get
 
       # IMPORTANT: create local.properties BEFORE any Gradle step
-      # settings.gradle reads this file at startup to locate Flutter SDK
+      # settings.gradle reads this file at startup to locate Flutter SDK.
+      # versionCode/versionName are parsed from pubspec.yaml's "version: x.y.z+N"
+      # line so the APK's embedded version always matches pubspec.yaml —
+      # the in-app update checker compares against this, so it must never
+      # be stuck at a hardcoded value.
       - name: Create local.properties
         run: |
+          VERSION_LINE=$(grep '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//')
+          VERSION_NAME=$(echo "$VERSION_LINE" | cut -d'+' -f1)
+          VERSION_CODE=$(echo "$VERSION_LINE" | cut -d'+' -f2)
+          echo "Parsed version: $VERSION_NAME+$VERSION_CODE"
           echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
-          echo "flutter.versionCode=2" >> android/local.properties
-          echo "flutter.versionName=2.0.0" >> android/local.properties
+          echo "flutter.versionCode=$VERSION_CODE" >> android/local.properties
+          echo "flutter.versionName=$VERSION_NAME" >> android/local.properties
 
       # Generate gradlew in a temp dir to avoid triggering Flutter project evaluation
       - name: Setup Gradle wrapper
