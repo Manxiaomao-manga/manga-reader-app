@@ -3,7 +3,7 @@ description: 漫小猫 - 漫画阅读 App
 
 publish_to: 'none'
 
-version: 2.0.0+2
+version: 2.1.0+3
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -12,6 +12,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_inappwebview: ^6.1.5
+  package_info_plus: ^10.2.1
+  http: ^1.6.0
+  path_provider: ^2.1.6
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

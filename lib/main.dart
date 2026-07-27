@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'update_checker.dart';
 
 // Domain failover list (in priority order). If the primary domain becomes
 // unreachable (DNS block, DDoS, outage), the app automatically retries the
@@ -138,6 +139,7 @@ class _MainPageState extends State<MainPage> {
   PullToRefreshController? _ptr;
   double _progress = 1.0;
   bool _isReaderPage = false;
+  bool _updateCheckedThisSession = false;
 
   String get _currentBase => 'https://manga.${_domains[_domainIdx]}';
   String _tabUrl(int i) => _currentBase + _tabPaths[i].path;
@@ -271,6 +273,10 @@ class _MainPageState extends State<MainPage> {
                   _ptr?.endRefreshing();
                   _updateReaderState(url);
                   setState(() => _progress = 1.0);
+                  if (!_updateCheckedThisSession) {
+                    _updateCheckedThisSession = true;
+                    checkForUpdate(context, silent: true);
+                  }
                 },
                 onReceivedError: (c, request, error) {
                   // Only fail over on the main page request, not a broken
@@ -289,6 +295,10 @@ class _MainPageState extends State<MainPage> {
                   final url = action.request.url?.toString() ?? '';
                   if (url == 'app://retry') {
                     _retryFromScratch();
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  if (url == 'app://check-update') {
+                    checkForUpdate(context, silent: false);
                     return NavigationActionPolicy.CANCEL;
                   }
                   // Keep known site domains in-app
