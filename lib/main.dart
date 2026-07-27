@@ -3,24 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
-const _base = 'https://manga.go-now.uk';
+// Domain failover list (in priority order). If the primary domain becomes
+// unreachable (DNS block, DDoS, outage), the app automatically retries the
+// same page on the next domain instead of leaving the user stuck on a
+// browser error page — all 3 domains serve the identical site.
+const _domains = ['go-now.uk', 'come100.com', 'manxiaomao.com'];
 
-// Domains kept in-app (site sometimes emits absolute links using its other
-// known hostnames — must still be treated as internal, not opened externally)
-const _appDomains = ['go-now.uk', 'come100.com', 'manxiaomao.com'];
-
-const _tabs = [
-  _Tab(Icons.home_rounded, '首页', '$_base/'),
-  _Tab(Icons.category_rounded, '分类', '$_base/category.php'),
-  _Tab(Icons.collections_bookmark_rounded, '书架', '$_base/user/library.php'),
-  _Tab(Icons.person_rounded, '我的', '$_base/user/settings.php'),
+const _tabPaths = [
+  _TabDef(Icons.home_rounded, '首页', '/'),
+  _TabDef(Icons.category_rounded, '分类', '/category.php'),
+  _TabDef(Icons.collections_bookmark_rounded, '书架', '/user/library.php'),
+  _TabDef(Icons.person_rounded, '我的', '/user/settings.php'),
 ];
 
-class _Tab {
-  const _Tab(this.icon, this.label, this.url);
+class _TabDef {
+  const _TabDef(this.icon, this.label, this.path);
   final IconData icon;
   final String label;
-  final String url;
+  final String path;
 }
 
 // Reader page URL shape: /manga/{slug}/{chapter} (two path segments).
@@ -106,10 +106,15 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   int _idx = 0;
+  int _domainIdx = 0;
   InAppWebViewController? _ctrl;
   PullToRefreshController? _ptr;
   double _progress = 1.0;
   bool _isReaderPage = false;
+  bool _failoverBusy = false;
+
+  String get _currentBase => 'https://manga.${_domains[_domainIdx]}';
+  String _tabUrl(int i) => _currentBase + _tabPaths[i].path;
 
   void _updateReaderState(Uri? url) {
     final isReader = url != null && _readerPathRe.hasMatch(url.path);
@@ -135,7 +140,21 @@ class _MainPageState extends State<MainPage> {
 
   void _switchTab(int i) {
     setState(() => _idx = i);
-    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_tabs[i].url)));
+    _ctrl?.loadUrl(urlRequest: URLRequest(url: WebUri(_tabUrl(i))));
+  }
+
+  // Retry the same path on the next domain in the failover list. Keeps the
+  // user on whatever page they were trying to reach instead of bouncing
+  // them back to the home tab.
+  void _failoverTo(Uri failedUrl) {
+    if (_failoverBusy) return;
+    if (_domainIdx >= _domains.length - 1) return; // no more fallbacks left
+    _failoverBusy = true;
+    _domainIdx++;
+    final retryUri = failedUrl.replace(host: 'manga.${_domains[_domainIdx]}');
+    _ctrl
+        ?.loadUrl(urlRequest: URLRequest(url: WebUri(retryUri.toString())))
+        .whenComplete(() => _failoverBusy = false);
   }
 
   @override
@@ -154,7 +173,7 @@ class _MainPageState extends State<MainPage> {
           child: Stack(
             children: [
               InAppWebView(
-                initialUrlRequest: URLRequest(url: WebUri(_tabs[0].url)),
+                initialUrlRequest: URLRequest(url: WebUri(_tabUrl(0))),
                 pullToRefreshController: _ptr,
                 initialUserScripts: UnmodifiableListView([
                   UserScript(
@@ -193,12 +212,22 @@ class _MainPageState extends State<MainPage> {
                   _updateReaderState(url);
                   setState(() => _progress = 1.0);
                 },
+                onReceivedError: (c, request, error) {
+                  // Only fail over on the main page request, not a broken
+                  // sub-resource (image/script) — and only for genuine
+                  // connectivity errors (DNS/timeout/unreachable), which is
+                  // exactly what onReceivedError represents (HTTP status
+                  // errors like 404/500 go through onReceivedHttpError).
+                  if (request.isForMainFrame ?? true) {
+                    _failoverTo(request.url);
+                  }
+                },
                 onUpdateVisitedHistory: (c, url, reload) =>
                     _updateReaderState(url),
                 shouldOverrideUrlLoading: (c, action) async {
                   final url = action.request.url?.toString() ?? '';
                   // Keep known site domains in-app
-                  if (_appDomains.any((d) => url.contains(d))) {
+                  if (_domains.any((d) => url.contains(d))) {
                     return NavigationActionPolicy.ALLOW;
                   }
                   // Everything else: allow (system handles tel: mailto: etc.)
@@ -220,7 +249,7 @@ class _MainPageState extends State<MainPage> {
             : NavigationBar(
                 selectedIndex: _idx,
                 onDestinationSelected: _switchTab,
-                destinations: _tabs
+                destinations: _tabPaths
                     .map((t) => NavigationDestination(
                           icon: Icon(t.icon, size: 22),
                           label: t.label,
