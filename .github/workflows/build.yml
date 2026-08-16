@@ -49,6 +49,23 @@ jobs:
           echo "flutter.versionCode=$VERSION_CODE" >> android/local.properties
           echo "flutter.versionName=$VERSION_NAME" >> android/local.properties
 
+      # This repository predates a checked-in Gradle wrapper.  Generate a
+      # matching wrapper for this CI workspace before Flutter invokes Gradle.
+      - name: Set up Gradle for wrapper generation
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.14'
+
+      - name: Generate Gradle wrapper
+        run: |
+          tmpdir=$(mktemp -d)
+          cd "$tmpdir"
+          printf "rootProject.name = 'wrapper-generator'\\n" > settings.gradle
+          gradle wrapper --gradle-version 8.14
+          cp gradlew "$GITHUB_WORKSPACE/android/gradlew"
+          cp gradlew.bat "$GITHUB_WORKSPACE/android/gradlew.bat"
+          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
