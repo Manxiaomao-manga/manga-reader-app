@@ -21,10 +21,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Flutter (latest stable)
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          # Pin the SDK so a future stable release cannot silently change
+          # Android's minimum Gradle requirement and break CI.
+          flutter-version: '3.47.0'
           cache: true
 
       - name: Install Flutter dependencies
@@ -46,24 +48,6 @@ jobs:
           echo "sdk.dir=$ANDROID_SDK_ROOT" >> android/local.properties
           echo "flutter.versionCode=$VERSION_CODE" >> android/local.properties
           echo "flutter.versionName=$VERSION_NAME" >> android/local.properties
-
-      # Generate gradlew in a temp dir to avoid triggering Flutter project evaluation
-      - name: Setup Gradle wrapper
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: "8.9"
-
-      - name: Generate Gradle wrapper in temp dir
-        run: |
-          tmpdir=$(mktemp -d)
-          cd "$tmpdir"
-          echo "rootProject.name = 'temp'" > settings.gradle
-          gradle wrapper --gradle-version 8.3
-          cp gradlew "$GITHUB_WORKSPACE/android/gradlew"
-          cp gradlew.bat "$GITHUB_WORKSPACE/android/gradlew.bat"
-          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/android/gradle/wrapper/gradle-wrapper.jar"
-          echo "Wrapper generated:"
-          ls -la "$GITHUB_WORKSPACE/android/gradle/wrapper/"
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
