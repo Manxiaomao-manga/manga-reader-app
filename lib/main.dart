@@ -255,7 +255,11 @@ class _MainPageState extends State<MainPage> {
                       'Mozilla/5.0 (Linux; Android 12; Mobile) '
                       'AppleWebKit/537.36 (KHTML, like Gecko) '
                       'Chrome/120.0.0.0 Mobile Safari/537.36 '
-                      'MangaXiaomaoApp/2.0',
+                      // The server intentionally gates manga.go-now.uk to the
+                      // official app. Keep this marker in every WebView
+                      // request so the app remains on its APK-only domain
+                      // instead of being redirected and losing its session.
+                      'MangaXiaomaoApp/2.1',
                 ),
                 onWebViewCreated: (c) {
                   _ctrl = c;
