@@ -144,6 +144,15 @@ class _MainPageState extends State<MainPage> {
   String get _currentBase => 'https://manga.${_domains[_domainIdx]}';
   String _tabUrl(int i) => _currentBase + _tabPaths[i].path;
 
+  // Only the manga domains participate in automatic failover. External
+  // services such as the payment gateway must keep their own URL: treating a
+  // payment-page WebView error as a manga outage would rewrite it to another
+  // manga host and eventually show the local offline screen.
+  bool _isMangaHost(Uri? url) {
+    final host = url?.host.toLowerCase() ?? '';
+    return _domains.any((d) => host == 'manga.${d.toLowerCase()}');
+  }
+
   // Native connect/DNS timeouts can take 20-60+ seconds on some networks
   // (e.g. "connected to Wi-Fi but no internet" rather than airplane mode).
   // Trying 3 domains back-to-back at that pace could take over a minute
@@ -288,7 +297,8 @@ class _MainPageState extends State<MainPage> {
                   // connectivity errors (DNS/timeout/unreachable), which is
                   // exactly what onReceivedError represents (HTTP status
                   // errors like 404/500 go through onReceivedHttpError).
-                  if (request.isForMainFrame ?? true) {
+                  if ((request.isForMainFrame ?? true) &&
+                      _isMangaHost(request.url)) {
                     _loadTimer?.cancel();
                     _failoverTo(request.url);
                   }
