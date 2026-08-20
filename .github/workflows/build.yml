@@ -1,4 +1,5 @@
 name: Build & Release APK
+# Release signing is supplied through the repository's stable signing secrets.
 
 on:
   push:
