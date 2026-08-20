@@ -9,6 +9,8 @@ pubspec.lock
 
 # Android
 android/local.properties
+android/key.properties
+android/manga-release.jks
 android/.gradle/
 android/captures/
 android/gradlew

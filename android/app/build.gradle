@@ -13,6 +13,11 @@ if (localPropertiesFile.exists()) {
 
 def flutterVersionCode = localProperties.getProperty("flutter.versionCode") ?: "2"
 def flutterVersionName = localProperties.getProperty("flutter.versionName") ?: "2.0.0"
+def signingPropertiesFile = rootProject.file("key.properties")
+def signingProperties = new Properties()
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
 
 android {
     namespace "com.mangaxiaocat.reader"
@@ -34,10 +39,25 @@ android {
         versionName flutterVersionName
     }
 
+    signingConfigs {
+        release {
+            if (signingPropertiesFile.exists()) {
+                storeFile rootProject.file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Use debug keystore for sideload distribution (no Play Store signing needed)
-            signingConfig signingConfigs.debug
+            // Every release must use the same private key so Android can
+            // install updates over the existing APK instead of reporting a
+            // signature conflict. CI writes key.properties from GitHub Secrets.
+            signingConfig signingPropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
         }
     }
 }

@@ -32,6 +32,28 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
+      # Release APKs must always use the same signing key. The keystore and
+      # passwords are stored only in GitHub Actions Secrets and are never
+      # committed to this repository.
+      - name: Configure stable release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "Missing ANDROID_KEYSTORE_BASE64 repository secret" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "Missing ANDROID_KEYSTORE_PASSWORD repository secret" && exit 1)
+          test -n "$ANDROID_KEY_ALIAS" || (echo "Missing ANDROID_KEY_ALIAS repository secret" && exit 1)
+          test -n "$ANDROID_KEY_PASSWORD" || (echo "Missing ANDROID_KEY_PASSWORD repository secret" && exit 1)
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/manga-release.jks
+          cat > android/key.properties <<EOF
+          storeFile=manga-release.jks
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
       # IMPORTANT: create local.properties BEFORE any Gradle step
       # settings.gradle reads this file at startup to locate Flutter SDK.
       # versionCode/versionName are parsed from pubspec.yaml's "version: x.y.z+N"
