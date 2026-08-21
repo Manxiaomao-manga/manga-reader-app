@@ -83,6 +83,7 @@ a.btn{display:inline-block;background:linear-gradient(135deg,#e8645a,#7c6af7);co
 <div class="icon">📴</div>
 <h2>目前没有网络连接</h2>
 <p>请检查手机网络或 Wi-Fi 后重试。<br>已下载的离线章节仍可在「书架」中阅读。</p>
+<a class="btn" href="app://offline-library">📚 打开离线书架</a>
 <a class="btn" href="app://retry">🔄 重试</a>
 </div></body></html>
 ''';
@@ -231,6 +232,13 @@ class _MainPageState extends State<MainPage> {
     _loadUrl(Uri.parse(_tabUrl(_idx)));
   }
 
+  void _openOfflineLibrary() {
+    _loadTimer?.cancel();
+    _ctrl?.loadUrl(
+      urlRequest: URLRequest(url: WebUri('$_currentBase/user/library.php')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -328,6 +336,10 @@ class _MainPageState extends State<MainPage> {
                   }
                   if (url == 'app://retry') {
                     _retryFromScratch();
+                    return NavigationActionPolicy.CANCEL;
+                  }
+                  if (url == 'app://offline-library') {
+                    _openOfflineLibrary();
                     return NavigationActionPolicy.CANCEL;
                   }
                   if (url == 'app://check-update') {
