@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'update_checker.dart';
 
 // Domain failover list (in priority order). If the primary domain becomes
@@ -307,6 +308,15 @@ class _MainPageState extends State<MainPage> {
                     _updateReaderState(url),
                 shouldOverrideUrlLoading: (c, action) async {
                   final url = action.request.url?.toString() ?? '';
+                  final uri = action.request.url;
+                  // 易支付 may hand off to the Alipay app using alipays://.
+                  // A WebView cannot render that scheme and otherwise shows
+                  // ERR_UNKNOWN_URL_SCHEME, so delegate it to Android.
+                  if (uri != null &&
+                      (uri.scheme == 'alipay' || uri.scheme == 'alipays')) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    return NavigationActionPolicy.CANCEL;
+                  }
                   if (url == 'app://retry') {
                     _retryFromScratch();
                     return NavigationActionPolicy.CANCEL;
