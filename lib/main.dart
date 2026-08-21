@@ -154,6 +154,9 @@ class _MainPageState extends State<MainPage> {
     return _domains.any((d) => host == 'manga.${d.toLowerCase()}');
   }
 
+  bool _isReaderUrl(Uri? url) =>
+      url != null && _readerPathRe.hasMatch(url.path);
+
   // Native connect/DNS timeouts can take 20-60+ seconds on some networks
   // (e.g. "connected to Wi-Fi but no internet" rather than airplane mode).
   // Trying 3 domains back-to-back at that pace could take over a minute
@@ -161,6 +164,10 @@ class _MainPageState extends State<MainPage> {
   // failover (and the final local offline page) shows up quickly instead.
   void _armTimeout(Uri uri) {
     _loadTimer?.cancel();
+    // Cached reader navigations are handled by the website Service Worker.
+    // Do not let the native failover timer replace its offline-reader shell
+    // with the app-level no-network page while Wi-Fi is intentionally off.
+    if (_isReaderUrl(uri)) return;
     final myAttempt = ++_attempt;
     _loadTimer = Timer(const Duration(seconds: 8), () {
       if (myAttempt == _attempt) _failoverTo(uri);
@@ -206,6 +213,7 @@ class _MainPageState extends State<MainPage> {
   // there's no connectivity at all — show a local (no-network-needed) page
   // instead of leaving Android's native "web page not available" screen up.
   void _failoverTo(Uri failedUrl) {
+    if (_isReaderUrl(failedUrl)) return;
     if (_domainIdx >= _domains.length - 1) {
       _loadTimer?.cancel();
       _ctrl?.loadData(data: _offlineHtml, mimeType: 'text/html', encoding: 'utf8');
@@ -299,7 +307,8 @@ class _MainPageState extends State<MainPage> {
                   // exactly what onReceivedError represents (HTTP status
                   // errors like 404/500 go through onReceivedHttpError).
                   if ((request.isForMainFrame ?? true) &&
-                      _isMangaHost(request.url)) {
+                      _isMangaHost(request.url) &&
+                      !_isReaderUrl(request.url)) {
                     _loadTimer?.cancel();
                     _failoverTo(request.url);
                   }
