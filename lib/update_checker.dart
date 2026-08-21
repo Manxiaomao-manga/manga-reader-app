@@ -15,7 +15,10 @@ Future<Map<String, dynamic>?> _fetchLatestVersion() async {
   for (final d in _versionCheckDomains) {
     try {
       final resp = await http
-          .get(Uri.parse('https://manga.$d/api/app_version.php'))
+          .get(
+            Uri.parse('https://manga.$d/api/app_version.php'),
+            headers: const {'User-Agent': 'MangaXiaomaoApp/2.1.3'},
+          )
           .timeout(const Duration(seconds: 6));
       if (resp.statusCode == 200) {
         return jsonDecode(utf8.decode(resp.bodyBytes)) as Map<String, dynamic>;
