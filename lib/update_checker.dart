@@ -55,6 +55,10 @@ Future<void> checkForUpdate(BuildContext context, {required bool silent}) async 
     return;
   }
 
+  // Automatic background checks are silent by design. Only the explicit
+  // "检查更新" action should open the update dialog.
+  if (silent) return;
+
   if (!context.mounted) return;
   final versionName = info['version_name'] as String? ?? '';
   final notes = info['notes'] as String? ?? '';

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'update_checker.dart';
 
 // Domain failover list (in priority order). If the primary domain becomes
@@ -283,6 +284,23 @@ class _MainPageState extends State<MainPage> {
     _loadUrl(Uri.parse(_tabUrl(_idx)));
   }
 
+  Future<void> _injectAppVersion(Uri? url) async {
+    if (url?.path != '/user/settings.php') return;
+    final info = await PackageInfo.fromPlatform();
+    final version = info.version.replaceAll("'", '');
+    await _ctrl?.evaluateJavascript(source: '''
+(function() {
+  var logout = document.querySelector('a[href="/user/logout.php"]');
+  if (!logout || document.getElementById('appVersionLabel')) return;
+  var label = document.createElement('div');
+  label.id = 'appVersionLabel';
+  label.textContent = '版本 v$version';
+  label.style.cssText = 'text-align:center;color:var(--muted,#8f8aa8);font-size:.75rem;margin:.1rem 0 .35rem';
+  logout.parentNode.insertBefore(label, logout);
+})();
+''');
+  }
+
   void _openOfflineLibrary() {
     _loadTimer?.cancel();
     _ctrl?.loadUrl(
@@ -353,6 +371,7 @@ class _MainPageState extends State<MainPage> {
                   _loadTimer?.cancel();
                   _ptr?.endRefreshing();
                   _updateReaderState(url);
+                  _injectAppVersion(url);
                   setState(() => _progress = 1.0);
                   if (!_updateCheckedThisSession) {
                     _updateCheckedThisSession = true;
