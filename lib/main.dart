@@ -85,6 +85,31 @@ const _initJs = r'''
         }
       }
     }
+
+    if (/^\/user\/vip\.php$/.test(location.pathname)) {
+      // Keep the complete VIP benefits text on the web only. In the APK the
+      // link would navigate away from the compact in-app purchase flow.
+      Array.from(document.querySelectorAll('a,button')).forEach(function(el) {
+        if (el.textContent.indexOf('查看完整VIP特权说明') >= 0) {
+          el.style.display = 'none';
+        }
+      });
+
+      // Match the website's fee notice while remaining safe for cached older
+      // HTML that predates the notice.
+      if (document.body.innerText.indexOf('易支付通道将加收5%手续费') < 0) {
+        var vipPayTitle = Array.from(document.querySelectorAll('div')).find(function(el) {
+          return el.textContent.trim() === '支付方式：';
+        });
+        if (vipPayTitle) {
+          var vipFee = document.createElement('div');
+          vipFee.className = 'app-epay-fee-note';
+          vipFee.textContent = '⚠️ 易支付通道将加收5%手续费';
+          vipFee.style.cssText = 'font-size:.76rem;color:#e6a23c;margin:-.15rem 0 .55rem';
+          vipPayTitle.insertAdjacentElement('afterend', vipFee);
+        }
+      }
+    }
   });
 })();
 ''';
