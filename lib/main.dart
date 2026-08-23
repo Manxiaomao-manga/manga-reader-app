@@ -354,7 +354,7 @@ class _MainPageState extends State<MainPage> {
                       // official app. Keep this marker in every WebView
                       // request so the app remains on its APK-only domain
                       // instead of being redirected and losing its session.
-                      'MangaXiaomaoApp/2.1.3',
+                      'MangaXiaomaoApp/2.1.7',
                 ),
                 onWebViewCreated: (c) {
                   _ctrl = c;

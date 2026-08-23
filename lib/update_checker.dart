@@ -17,7 +17,7 @@ Future<Map<String, dynamic>?> _fetchLatestVersion() async {
       final resp = await http
           .get(
             Uri.parse('https://manga.$d/api/app_version.php'),
-            headers: const {'User-Agent': 'MangaXiaomaoApp/2.1.3'},
+            headers: const {'User-Agent': 'MangaXiaomaoApp/2.1.7'},
           )
           .timeout(const Duration(seconds: 6));
       if (resp.statusCode == 200) {
