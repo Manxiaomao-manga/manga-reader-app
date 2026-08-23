@@ -64,6 +64,11 @@ const _initJs = r'''
     var isStore = /^\/user\/store\.php$/.test(location.pathname);
     var isVip = /^\/user\/vip\.php$/.test(location.pathname);
     var isTopup = /^\/user\/topup\.php$/.test(location.pathname);
+    if (isStore) {
+      var ticketLayout = document.createElement('style');
+      ticketLayout.textContent = '#panel-tickets .amount-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}';
+      document.head.appendChild(ticketLayout);
+    }
 
     function addEpayFeeNotes() {
       var titles = Array.from(document.querySelectorAll('div')).filter(function(el) {
