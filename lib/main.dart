@@ -59,6 +59,32 @@ const _initJs = r'''
       (isReader ? '' : 'body{padding-bottom:72px!important}') +
       (isHome ? '' : '.site-header{display:none!important}');
     document.head.appendChild(s);
+
+    // In the APK, keep recharge amounts on the fixed plans only.  The web
+    // site still keeps the custom-ticket input; this app-only rule prevents
+    // the custom amount flow from opening another page inside the WebView.
+    if (/^\/user\/(topup|store)\.php$/.test(location.pathname)) {
+      var customInput = document.getElementById('ticketsInput');
+      if (customInput) {
+        var customBox = customInput.closest('div[style*="margin-top"]');
+        if (customBox) customBox.style.display = 'none';
+      }
+
+      // The website already renders this notice. Add it only when an older
+      // cached page does not, so the APK never shows duplicate fee notices.
+      if (document.body.innerText.indexOf('易支付通道将加收5%手续费') < 0) {
+        var payTitle = Array.from(document.querySelectorAll('div')).find(function(el) {
+          return el.textContent.trim() === '支付方式：';
+        });
+        if (payTitle) {
+          var fee = document.createElement('div');
+          fee.className = 'app-epay-fee-note';
+          fee.textContent = '⚠️ 易支付通道将加收5%手续费';
+          fee.style.cssText = 'font-size:.76rem;color:#e6a23c;margin:-.15rem 0 .55rem';
+          payTitle.insertAdjacentElement('afterend', fee);
+        }
+      }
+    }
   });
 })();
 ''';
