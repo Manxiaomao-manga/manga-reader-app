@@ -98,6 +98,9 @@ jobs:
       - name: Generate native splash screen
         run: dart run flutter_native_splash:create
 
+      - name: Analyze Dart source
+        run: flutter analyze --no-fatal-infos
+
       - name: Build Release APK
         run: flutter build apk --release
 
