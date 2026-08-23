@@ -66,8 +66,39 @@ const _initJs = r'''
     var isTopup = /^\/user\/topup\.php$/.test(location.pathname);
     if (isStore) {
       var ticketLayout = document.createElement('style');
-      ticketLayout.textContent = '#panel-tickets .amount-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}';
+      ticketLayout.textContent =
+        '#panel-tickets .amount-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}' +
+        '.app-plan-badge{position:absolute;top:-.75rem;left:50%;transform:translateX(-50%);background:#e9655a;color:#fff;border-radius:999px;padding:.2rem .7rem;font-size:.68rem;font-weight:700;white-space:nowrap}' +
+        '.app-plan-orig{font-size:.68rem;color:var(--muted);text-decoration:line-through;margin-top:.25rem}' +
+        '.app-plan-per{font-size:.68rem;color:var(--muted);margin-top:.25rem}';
       document.head.appendChild(ticketLayout);
+
+      // The combined store page used by the APK previously showed only the
+      // monthly price. Match the full VIP plan presentation used on vip.php.
+      document.querySelectorAll('#panel-vip .plan-card').forEach(function(card) {
+        var input = document.getElementById(card.getAttribute('for'));
+        var price = input ? Number(input.getAttribute('data-price') || 0) : 0;
+        var months = Number(card.getAttribute('data-months') || 1);
+        var orig = Number(card.getAttribute('data-orig-price') || 0);
+        if (orig > price && !card.querySelector('.app-plan-badge')) {
+          var badge = document.createElement('div');
+          badge.className = 'app-plan-badge';
+          badge.textContent = '限时特惠';
+          card.insertBefore(badge, card.firstChild);
+          var old = document.createElement('div');
+          old.className = 'app-plan-orig';
+          old.textContent = '原价¥' + Math.round(orig);
+          var per = card.querySelector('.plan-per');
+          if (per) per.replaceWith(old);
+          var daily = document.createElement('div');
+          daily.className = 'app-plan-per';
+          daily.textContent = '平均每日¥' + (price / (Math.max(1, months) * 30)).toFixed(2);
+          card.appendChild(daily);
+        } else {
+          var monthly = card.querySelector('.plan-per');
+          if (monthly) monthly.textContent = '平均每日¥' + (price / (Math.max(1, months) * 30)).toFixed(2);
+        }
+      });
     }
 
     function addEpayFeeNotes() {
