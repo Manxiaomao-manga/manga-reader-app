@@ -314,20 +314,32 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _injectAppVersion(Uri? url) async {
-    if (url?.path != '/user/settings.php') return;
+    if (url == null || !url.path.endsWith('/user/settings.php')) return;
     final info = await PackageInfo.fromPlatform();
     final version = info.version.replaceAll("'", '');
-    await _ctrl?.evaluateJavascript(source: '''
+    const source = '''
 (function() {
-  var logout = document.querySelector('a[href="/user/logout.php"]');
-  if (!logout || document.getElementById('appVersionLabel')) return;
+  if (document.getElementById('appVersionLabel')) return true;
+  var logout = Array.from(document.querySelectorAll('a[href]')).find(function(a) {
+    try { return new URL(a.href, location.href).pathname.endsWith('/user/logout.php'); }
+    catch (e) { return /\\/user\\/logout\\.php(?:[?#]|$)/.test(a.getAttribute('href') || ''); }
+  });
+  if (!logout || !logout.parentNode) return false;
   var label = document.createElement('div');
   label.id = 'appVersionLabel';
   label.textContent = '版本 v$version';
-  label.style.cssText = 'text-align:center;color:var(--muted,#8f8aa8);font-size:.75rem;margin:.1rem 0 .35rem';
+  label.style.cssText = 'display:block;text-align:center;color:var(--muted,#8f8aa8);font-size:.75rem;line-height:1.4;margin:.1rem 0 .35rem';
   logout.parentNode.insertBefore(label, logout);
+  return true;
 })();
-''');
+''';
+    // Settings contains delayed sections on some WebView versions. Retry a
+    // few times so the label is placed above logout after the DOM is ready.
+    for (final delay in const [0, 250, 800, 1500]) {
+      if (delay > 0) await Future<void>.delayed(Duration(milliseconds: delay));
+      final result = await _ctrl?.evaluateJavascript(source: source);
+      if (result == true || result == 'true') break;
+    }
   }
 
   void _openOfflineLibrary() {
