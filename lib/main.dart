@@ -61,33 +61,40 @@ const _initJs = r'''
       (isHome ? '' : '.site-header{display:none!important}');
     document.head.appendChild(s);
 
-    // In the APK, keep recharge amounts on the fixed plans only.  The web
-    // site still keeps the custom-ticket input; this app-only rule prevents
-    // the custom amount flow from opening another page inside the WebView.
-    if (/^\/user\/(topup|store)\.php$/.test(location.pathname)) {
+    var isStore = /^\/user\/store\.php$/.test(location.pathname);
+    var isVip = /^\/user\/vip\.php$/.test(location.pathname);
+    var isTopup = /^\/user\/topup\.php$/.test(location.pathname);
+
+    function addEpayFeeNotes() {
+      var titles = Array.from(document.querySelectorAll('div')).filter(function(el) {
+        return el.textContent.trim() === '支付方式：';
+      });
+      titles.forEach(function(title) {
+        var next = title.nextElementSibling;
+        if (next && next.classList.contains('app-epay-fee-note')) return;
+        var fee = document.createElement('div');
+        fee.className = 'app-epay-fee-note';
+        fee.textContent = '⚠️ 易支付通道将加收5%手续费';
+        fee.style.cssText = 'font-size:.76rem;color:#e6a23c;margin:-.15rem 0 .55rem';
+        title.insertAdjacentElement('afterend', fee);
+      });
+    }
+
+    // In the APK, keep recharge amounts on the fixed plans only. The web
+    // site still keeps the custom-ticket flow for browser users.
+    if (isTopup || isStore) {
       var customInput = document.getElementById('ticketsInput');
       if (customInput) {
         var customBox = customInput.closest('div[style*="margin-top"]');
         if (customBox) customBox.style.display = 'none';
       }
-
-      // The website already renders this notice. Add it only when an older
-      // cached page does not, so the APK never shows duplicate fee notices.
-      if (document.body.innerText.indexOf('易支付通道将加收5%手续费') < 0) {
-        var payTitle = Array.from(document.querySelectorAll('div')).find(function(el) {
-          return el.textContent.trim() === '支付方式：';
-        });
-        if (payTitle) {
-          var fee = document.createElement('div');
-          fee.className = 'app-epay-fee-note';
-          fee.textContent = '⚠️ 易支付通道将加收5%手续费';
-          fee.style.cssText = 'font-size:.76rem;color:#e6a23c;margin:-.15rem 0 .55rem';
-          payTitle.insertAdjacentElement('afterend', fee);
-        }
-      }
+      Array.from(document.querySelectorAll('a,button')).forEach(function(el) {
+        if (el.textContent.indexOf('自定义张数') >= 0) el.style.display = 'none';
+      });
+      addEpayFeeNotes();
     }
 
-    if (/^\/user\/vip\.php$/.test(location.pathname)) {
+    if (isVip || isStore) {
       // Keep the complete VIP benefits text on the web only. In the APK the
       // link would navigate away from the compact in-app purchase flow.
       Array.from(document.querySelectorAll('a,button')).forEach(function(el) {
@@ -95,21 +102,7 @@ const _initJs = r'''
           el.style.display = 'none';
         }
       });
-
-      // Match the website's fee notice while remaining safe for cached older
-      // HTML that predates the notice.
-      if (document.body.innerText.indexOf('易支付通道将加收5%手续费') < 0) {
-        var vipPayTitle = Array.from(document.querySelectorAll('div')).find(function(el) {
-          return el.textContent.trim() === '支付方式：';
-        });
-        if (vipPayTitle) {
-          var vipFee = document.createElement('div');
-          vipFee.className = 'app-epay-fee-note';
-          vipFee.textContent = '⚠️ 易支付通道将加收5%手续费';
-          vipFee.style.cssText = 'font-size:.76rem;color:#e6a23c;margin:-.15rem 0 .55rem';
-          vipPayTitle.insertAdjacentElement('afterend', vipFee);
-        }
-      }
+      addEpayFeeNotes();
     }
   });
 })();

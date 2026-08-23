@@ -3,7 +3,7 @@ description: 漫小猫 - 漫画阅读 App
 
 publish_to: 'none'
 
-version: 2.1.7+12
+version: 2.1.8+13
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
