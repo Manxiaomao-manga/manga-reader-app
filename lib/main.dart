@@ -317,7 +317,7 @@ class _MainPageState extends State<MainPage> {
     if (url == null || !url.path.endsWith('/user/settings.php')) return;
     final info = await PackageInfo.fromPlatform();
     final version = info.version.replaceAll("'", '');
-    const source = '''
+    final source = '''
 (function() {
   if (document.getElementById('appVersionLabel')) return true;
   var logout = Array.from(document.querySelectorAll('a[href]')).find(function(a) {
