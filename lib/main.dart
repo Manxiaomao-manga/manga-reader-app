@@ -383,7 +383,7 @@ class _MainPageState extends State<MainPage> {
                       // official app. Keep this marker in every WebView
                       // request so the app remains on its APK-only domain
                       // instead of being redirected and losing its session.
-                      'MangaXiaomaoApp/2.2.1',
+                      'MangaXiaomaoApp/2.2.2',
                 ),
                 onWebViewCreated: (c) {
                   _ctrl = c;
@@ -425,12 +425,30 @@ class _MainPageState extends State<MainPage> {
                 shouldOverrideUrlLoading: (c, action) async {
                   final url = action.request.url?.toString() ?? '';
                   final uri = action.request.url;
-                  // 易支付 may hand off to the Alipay app using alipays://.
-                  // A WebView cannot render that scheme and otherwise shows
-                  // ERR_UNKNOWN_URL_SCHEME, so delegate it to Android.
+                  // 易支付 may return an alipays:// wrapper containing the
+                  // actual HTTPS payment URL. Do not open the Alipay app
+                  // directly: its native hand-off applies an extra redirect
+                  // whitelist and can reject an otherwise valid web payment.
+                  // Open the embedded HTTPS URL in the system browser instead,
+                  // matching the successful web checkout flow.
                   if (uri != null &&
                       (uri.scheme == 'alipay' || uri.scheme == 'alipays')) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    final paymentUrl = uri.queryParameters['url'];
+                    final target = paymentUrl != null &&
+                            (paymentUrl.startsWith('https://') ||
+                                paymentUrl.startsWith('http://'))
+                        ? Uri.tryParse(paymentUrl)
+                        : null;
+                    if (target != null) {
+                      await launchUrl(target,
+                          mode: LaunchMode.externalApplication);
+                    } else {
+                      // Keep a graceful fallback for providers that emit a
+                      // non-wrapped payment URL rather than a usable browser
+                      // target.
+                      await launchUrl(uri,
+                          mode: LaunchMode.externalApplication);
+                    }
                     return NavigationActionPolicy.CANCEL;
                   }
                   if (url == 'app://retry') {
